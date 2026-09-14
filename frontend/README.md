@@ -1,138 +1,160 @@
-# 多签钱包前端应用
+# MultiSig Wallet Frontend
 
-一个现代化、功能完整的多签钱包管理前端应用，基于 Next.js 14 和 Tailwind CSS 构建。
+A modern, responsive interface for managing the MultiSig Wallet contract, built with Next.js 14 and Tailwind CSS.
 
-## 功能特性
+## Features
 
-- ✅ **钱包连接**：支持 MetaMask 钱包连接
-- ✅ **钱包管理**：查看钱包余额、所有者列表、确认阈值
-- ✅ **交易管理**：
-  - 创建交易提案
-  - 确认/撤销确认交易
-  - 执行交易
-  - 查看交易详情和状态
-- ✅ **所有者管理**：
-  - 添加所有者
-  - 删除所有者
-  - 修改确认阈值
-- ✅ **实时更新**：监听链上事件，自动刷新数据
-- ✅ **现代化 UI**：美观的界面设计，支持深色模式
-- ✅ **响应式设计**：适配各种屏幕尺寸
+- **Wallet connection:** Connect with MetaMask
+- **Wallet overview:** View the contract balance, owner list, and confirmation threshold
+- **Transaction management:**
+  - Create transaction proposals
+  - Confirm or revoke transaction confirmations
+  - Execute transactions that have reached the required threshold
+  - View transaction details and status
+- **Owner management:**
+  - Add owners
+  - Remove owners
+  - Display and attempt to change the confirmation threshold
+- **Data refresh:** Refresh wallet and transaction data after on-chain actions
+- **Modern interface:** Responsive layout with light and dark themes
 
-## 技术栈
+> **Contract compatibility:** The Solidity contract currently included in this repository does not implement `changeThreshold`, `version`, `getOwnerVoteCount`, or `incrementOwnerVoteCount`. The frontend detects the absence of version and vote-count methods, but attempting to change the threshold will fail with the current contract.
 
-- **框架**: Next.js 14 (App Router)
-- **语言**: TypeScript
-- **样式**: Tailwind CSS
-- **Web3**: Ethers.js v6
-- **图标**: Lucide React
-- **日期处理**: date-fns
+## Tech stack
 
-## 快速开始
+- **Framework:** Next.js 14 with the App Router
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **Web3:** ethers.js 6
+- **Icons:** Lucide React
+- **Date utilities:** date-fns
 
-### 1. 安装依赖
+## Getting started
+
+### 1. Install dependencies
+
+From the repository root:
 
 ```bash
 cd frontend
 npm install
 ```
 
-### 2. 配置环境变量（可选）
+### 2. Configure environment variables
 
-如果需要自定义网络配置，可以创建 `.env.local` 文件：
+Copy the provided example:
 
-```env
-NEXT_PUBLIC_NETWORK=sepolia
-NEXT_PUBLIC_RPC_URL=your_rpc_url
+```bash
+cp env.example .env.local
 ```
 
-### 3. 启动开发服务器
+Then configure the default network and the deployed contract address:
+
+```dotenv
+NEXT_PUBLIC_DEFAULT_NETWORK=sepolia
+NEXT_PUBLIC_CONTRACT_ADDRESS_SEPOLIA=0xYourDeployedContractAddress
+NEXT_PUBLIC_RPC_URL=https://your-sepolia-rpc-url
+```
+
+For local development, use:
+
+```dotenv
+NEXT_PUBLIC_DEFAULT_NETWORK=localhost
+NEXT_PUBLIC_CONTRACT_ADDRESS_LOCALHOST=0xYourDeployedContractAddress
+```
+
+All variables prefixed with `NEXT_PUBLIC_` are exposed to the browser. Never place private keys or other secrets in `.env.local`.
+
+### 3. Start the development server
 
 ```bash
 npm run dev
 ```
 
-应用将在 [http://localhost:3000](http://localhost:3000) 启动。
+Open [http://localhost:3000](http://localhost:3000).
 
-### 4. 构建生产版本
+### 4. Create a production build
 
 ```bash
 npm run build
 npm start
 ```
 
-## 使用说明
+## Usage
 
-### 连接钱包
+### Connect a wallet
 
-1. 确保已安装 MetaMask 浏览器扩展
-2. 点击"连接钱包"按钮
-3. 在 MetaMask 中确认连接
-4. 确保连接到 Sepolia 测试网络
+1. Install the MetaMask browser extension.
+2. Select **Connect Wallet**.
+3. Approve the connection in MetaMask.
+4. Make sure MetaMask is connected to the network where the contract is deployed.
 
-### 管理多签钱包
+The current wallet provider is configured to request a switch to Sepolia when another network is detected.
 
-1. **输入钱包地址**：在首页输入已部署的多签钱包合约地址
-2. **查看钱包信息**：查看余额、所有者数量、确认阈值等
-3. **创建交易**：点击"创建交易"按钮，填写接收地址和金额
-4. **确认交易**：作为所有者，可以确认或撤销确认交易
-5. **执行交易**：当确认数达到阈值时，可以执行交易
-6. **管理所有者**：在"所有者"标签页中添加或删除所有者，修改阈值
+### Manage a multisig wallet
 
-## 项目结构
+1. Enter the address of a deployed `MultiSigWallet` contract. If an address is configured for the active network, the app loads it automatically.
+2. Review the wallet balance, owners, threshold, and transaction history.
+3. As an owner, create a transaction proposal with a recipient and ETH amount.
+4. Confirm a pending transaction or revoke an existing confirmation.
+5. Execute the transaction after it reaches the required number of confirmations.
+6. Use the **Owners** tab to add or remove owners.
 
-```
+All state-changing operations require a wallet signature and enough ETH to pay network gas fees.
+
+## Supported networks
+
+Network definitions are located in `lib/config.ts`:
+
+| Network | Chain ID | Environment variable |
+| --- | ---: | --- |
+| Localhost | 31337 | `NEXT_PUBLIC_CONTRACT_ADDRESS_LOCALHOST` |
+| Sepolia | 11155111 | `NEXT_PUBLIC_CONTRACT_ADDRESS_SEPOLIA` |
+| Ethereum Mainnet | 1 | `NEXT_PUBLIC_CONTRACT_ADDRESS_MAINNET` |
+
+Although these networks are defined in the configuration module, the current `Web3Provider` actively requests Sepolia. Additional provider changes are required for a fully selectable multi-network experience.
+
+## Project structure
+
+```text
 frontend/
 ├── app/
-│   ├── globals.css          # 全局样式
-│   ├── layout.tsx           # 根布局
-│   └── page.tsx             # 首页
+│   ├── globals.css                 Global styles
+│   ├── layout.tsx                  Root layout
+│   └── page.tsx                    Main page
 ├── components/
-│   ├── AccountDetailsModal.tsx    # 账户详情模态框
-│   ├── AlertProvider.tsx          # 通知提供者
-│   ├── CreateTransactionModal.tsx # 创建交易模态框
-│   ├── Header.tsx                 # 头部组件
-│   ├── OwnersManagement.tsx       # 所有者管理组件
-│   ├── TransactionCard.tsx         # 交易卡片
-│   ├── TransactionList.tsx         # 交易列表
-│   ├── WalletConnectPrompt.tsx    # 钱包连接提示
-│   ├── WalletDashboard.tsx        # 钱包仪表板
-│   ├── WalletInfo.tsx             # 钱包信息卡片
-│   ├── WalletInput.tsx            # 钱包地址输入
-│   └── Web3Provider.tsx            # Web3 提供者
+│   ├── AccountDetailsModal.tsx     Account details dialog
+│   ├── AlertDialog.tsx             Alert dialog
+│   ├── AlertProvider.tsx           Application notifications
+│   ├── CreateTransactionModal.tsx  Transaction proposal form
+│   ├── Header.tsx                  Application header
+│   ├── OwnersManagement.tsx        Owner-management interface
+│   ├── TransactionCard.tsx         Transaction display
+│   ├── TransactionList.tsx         Transaction collection
+│   ├── WalletConnectPrompt.tsx     Wallet connection prompt
+│   ├── WalletDashboard.tsx         Main wallet dashboard
+│   ├── WalletInfo.tsx              Wallet summary cards
+│   └── Web3Provider.tsx            Browser-wallet context
 ├── hooks/
-│   ├── useMultiSigWallet.ts        # 多签钱包 Hook
-│   └── useTransactions.ts          # 交易 Hook
+│   ├── useMultiSigWallet.ts        Wallet data hook
+│   └── useTransactions.ts          Transaction data hook
 ├── lib/
-│   └── abis.ts                     # 合约 ABI
+│   ├── abis.ts                     Contract ABI
+│   ├── config.ts                   Network and contract configuration
+│   ├── contracts.ts                Contract helpers
+│   └── network.ts                  Network helpers
 └── types/
-    └── window.d.ts                  # Window 类型定义
+    └── window.d.ts                 Browser-wallet types
 ```
 
-## 设计特点
+## Troubleshooting
 
-- **现代化设计**：采用渐变背景、毛玻璃效果、流畅动画
-- **深色模式支持**：自动适配系统主题
-- **响应式布局**：完美适配桌面和移动设备
-- **交互反馈**：按钮悬停效果、加载状态、成功/错误提示
-- **信息层次**：清晰的信息架构和视觉层次
+- **The contract cannot be loaded:** Confirm that the address is valid, deployed on the connected network, and configured under the matching environment variable.
+- **Environment changes are ignored:** Restart the Next.js development server after editing `.env.local`.
+- **MetaMask switches away from localhost:** The current provider automatically requests Sepolia. Update `components/Web3Provider.tsx` before using the local network through the UI.
+- **A transaction fails:** Check that the connected account has permission for the requested action and enough ETH for gas.
+- **Threshold changes fail:** The current contract has no `changeThreshold` function.
 
-## 注意事项
+## Security
 
-1. **网络要求**：默认配置为 Sepolia 测试网络，如需使用其他网络，请修改 `Web3Provider.tsx` 中的网络配置
-2. **合约地址**：确保输入的多签钱包地址是已部署的合约地址
-3. **权限要求**：只有钱包的所有者才能执行管理操作（创建交易、确认交易、管理所有者等）
-4. **Gas 费用**：所有链上操作都需要支付 Gas 费用
-
-## 开发建议
-
-- 使用 TypeScript 严格模式进行类型检查
-- 遵循 React Hooks 最佳实践
-- 使用 Tailwind CSS 工具类进行样式设计
-- 保持组件的单一职责原则
-- 及时处理错误和边界情况
-
-## 许可证
-
-MIT License
-
+This frontend and its associated contract are intended for development and education. The contract has not been audited; do not use it to manage production funds.

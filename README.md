@@ -1,57 +1,183 @@
-# Sample Hardhat 3 Beta Project (`mocha` and `ethers`)
+# MultiSig Wallet
 
-This project showcases a Hardhat 3 Beta project using `mocha` for tests and the `ethers` library for Ethereum interactions.
+An Ethereum multisignature wallet built with Solidity, Hardhat 3, ethers.js, and a Next.js frontend. The wallet can hold ETH, propose arbitrary contract calls, collect approvals from a configurable group of owners, and execute a proposal after it reaches the required confirmation threshold.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+> **Important:** This project is intended for learning and development. The contracts have not been audited and should not be used to custody production funds.
 
-## Project Overview
+## Features
 
-This example project includes:
+- Configure wallet owners and an approval threshold at deployment
+- Deposit ETH through `receive` or `fallback`
+- Submit ETH transfers or arbitrary calldata
+- Confirm and revoke confirmations on pending transactions
+- Execute transactions after the threshold is reached
+- Add and remove owners
+- Inspect owners, balance, threshold, transactions, and confirmation status
+- Manage the wallet from a responsive MetaMask-enabled web interface
+- Run Solidity and TypeScript tests with Hardhat
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using `mocha` and ethers.js
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+## How it works
 
-## Usage
+1. Deploy the wallet with a unique list of owner addresses and a confirmation threshold.
+2. Fund the deployed contract with ETH.
+3. Submit a transaction containing a destination, value, and optional calldata.
+4. Wallet owners confirm the pending transaction.
+5. Once enough confirmations have been collected, the transaction can be executed.
 
-### Running Tests
+The current contract allows anyone to submit or execute a transaction, while confirmations are restricted to owners. Owner addition and removal require only one owner call; they do not go through the multisig proposal process.
 
-To run all the tests in the project, execute the following command:
+## Tech stack
 
-```shell
+- Solidity 0.8.28
+- Hardhat 3
+- ethers.js 6
+- Mocha and Chai
+- Next.js 14, React 18, TypeScript, and Tailwind CSS
+
+## Project structure
+
+```text
+contracts/MultiSigWallet.sol           Core wallet contract
+test/MultiSigWallet.ts                 TypeScript contract tests
+ignition/modules/MultiSigWallet.ts     Hardhat Ignition deployment module
+scripts/multiSigWallet.ts              Script-based deployment
+frontend/                              Next.js wallet interface
+```
+
+The repository also contains Hardhat's sample `Counter` contract and tests; they are not part of the multisig wallet.
+
+## Prerequisites
+
+- A recent Node.js release supported by Hardhat 3
+- npm
+- MetaMask or another EIP-1193 browser wallet for the frontend
+- Sepolia ETH if deploying to the Sepolia testnet
+
+## Installation
+
+Install the smart-contract dependencies from the repository root:
+
+```bash
+npm install
+```
+
+Install the frontend dependencies separately:
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+## Test and compile
+
+Run the complete test suite:
+
+```bash
 npx hardhat test
 ```
 
-You can also selectively run the Solidity or `mocha` tests:
+Run only the TypeScript tests or compile the contracts:
 
-```shell
-npx hardhat test solidity
+```bash
 npx hardhat test mocha
+npx hardhat compile
 ```
 
-### Make a deployment to Sepolia
+## Local development
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+Start a local Hardhat node in one terminal:
 
-To run the deployment to a local chain:
-
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
+```bash
+npx hardhat node
 ```
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+In a second terminal, deploy the wallet:
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
-
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
-
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+```bash
+npx hardhat run scripts/multiSigWallet.ts --network localhost
 ```
 
-After setting the variable, you can run the deployment with the Sepolia network:
+The deployment script currently uses three development owner addresses and requires two confirmations. To use different owners or a different threshold, edit `scripts/multiSigWallet.ts` before deploying.
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
+Copy the printed contract address into the frontend configuration:
+
+```bash
+cp frontend/env.example frontend/.env.local
 ```
+
+Then set:
+
+```dotenv
+NEXT_PUBLIC_DEFAULT_NETWORK=localhost
+NEXT_PUBLIC_CONTRACT_ADDRESS_LOCALHOST=0xYourDeployedContractAddress
+```
+
+Start the frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000), connect MetaMask to `http://127.0.0.1:8545` (chain ID `31337`), and enter or select the deployed wallet address.
+
+## Deploy to Sepolia
+
+Create a root `.env` file with a funded deployer account and Sepolia RPC endpoint:
+
+```dotenv
+SEPOLIA_RPC_URL=https://your-sepolia-rpc-url
+SEPOLIA_PRIVATE_KEY=0xyour-private-key
+```
+
+Never commit this file or expose the private key through a `NEXT_PUBLIC_` frontend variable.
+
+Review the owner addresses in the deployment script, then deploy:
+
+```bash
+npx hardhat run scripts/multiSigWallet.ts --network sepolia
+```
+
+Configure the frontend with the resulting address:
+
+```dotenv
+NEXT_PUBLIC_DEFAULT_NETWORK=sepolia
+NEXT_PUBLIC_CONTRACT_ADDRESS_SEPOLIA=0xYourDeployedContractAddress
+NEXT_PUBLIC_RPC_URL=https://your-sepolia-rpc-url
+```
+
+Restart the frontend after changing its environment variables.
+
+Hardhat Ignition is also available, but its module contains its own fixed owner list. Review it before deployment:
+
+```bash
+npx hardhat ignition deploy ignition/modules/MultiSigWallet.ts --network sepolia
+```
+
+## Contract interface
+
+| Function | Access | Purpose |
+| --- | --- | --- |
+| `submitTransaction(to, value, data)` | Anyone | Create a pending transaction |
+| `confirmTransaction(txIndex)` | Owner | Add the caller's confirmation |
+| `revokeConfirmation(txIndex)` | Confirming address | Remove the caller's confirmation |
+| `executeTransaction(txIndex)` | Anyone | Execute a sufficiently confirmed transaction |
+| `addOwner(owner)` | Owner | Add a wallet owner |
+| `removeOwner(owner)` | Owner | Remove an owner while keeping the threshold valid |
+| `getOwners()` | Anyone | Return all current owners |
+| `getTransaction(txIndex)` | Anyone | Return a transaction proposal |
+| `canExecute(txIndex)` | Anyone | Check whether a pending transaction is executable |
+
+## Security notes
+
+- The contract is unaudited.
+- Owner-management actions are controlled by any single owner, not by threshold approval.
+- The confirmation threshold cannot be changed after deployment in the current Solidity contract.
+- External calls can invoke arbitrary code. The transaction is marked executed before the call, which provides basic reentrancy protection for replaying that transaction.
+- Always verify the network, owners, threshold, destination, value, and calldata before signing.
+- The frontend contains optional UI paths for newer contract methods such as threshold changes and vote counts. Those methods are not implemented by the contract in this repository and will fail when used with it.
+
+## License
+
+The Solidity contract is published under the MIT SPDX identifier. The root package currently declares the ISC license. Add a repository-level `LICENSE` file before distributing the project.
